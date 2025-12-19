@@ -1,6 +1,7 @@
 package api
 
 import (
+	"plaud-emails/service/mindadvisor"
 	usersvc "plaud-emails/service/user"
 
 	"github.com/Plaud-AI/plaud-go-scaffold/pkg/config"
@@ -16,6 +17,7 @@ type Services interface {
 	GetRedisClient() *rdb.Client
 	GetDBClient() *dbpkg.Client
 	GetUserService() *usersvc.UserService
+	GetMindAdvisorService() *mindadvisor.MindAdvisorService
 	GetJwtAuther() *middleware.JWTAuthMiddleware
 	GetServiceRegistry() *etcd.ServiceRegistry
 }

@@ -4,6 +4,7 @@ import (
 	"context"
 
 	"plaud-emails/external/helloservice"
+	"plaud-emails/service/mindadvisor"
 	"plaud-emails/service/rpc/server"
 	"plaud-emails/service/user"
 
@@ -15,11 +16,16 @@ import (
 
 type Services struct {
 	*app.Services[*config.AppConfig]
-	UserService *user.UserService
+	UserService        *user.UserService
+	MindAdvisorService *mindadvisor.MindAdvisorService
 }
 
 func (p *Services) GetUserService() *user.UserService {
 	return p.UserService
+}
+
+func (p *Services) GetMindAdvisorService() *mindadvisor.MindAdvisorService {
+	return p.MindAdvisorService
 }
 
 // BuildBizServices 构建业务服务
@@ -29,9 +35,12 @@ func BuildBizServices(ctx context.Context, services *app.Services[*config.AppCon
 		return nil, err
 	}
 
+	mindAdvisorService := mindadvisor.New(services.DBClient.GetDB())
+
 	return &Services{
-		Services:    services,
-		UserService: userService,
+		Services:           services,
+		UserService:        userService,
+		MindAdvisorService: mindAdvisorService,
 	}, nil
 }
 

@@ -48,6 +48,7 @@ func InitRouter(services Services) (public http.Handler, private http.Handler) {
 	}
 	demoHandler := NewDemoHandler(services.GetRedisClient())
 	userHandler := NewUserHandler(services.GetUserService(), helloClient)
+	mailboxHandler := NewMailboxHandler(services.GetMindAdvisorService())
 
 	// public
 	publicRouter.GET("/index", demoHandler.Index)
@@ -64,6 +65,13 @@ func InitRouter(services Services) (public http.Handler, private http.Handler) {
 		users.GET("/hello_rpc", userHandler.Hello)
 		users.Use(services.GetJwtAuther().AuthJWT())
 		users.DELETE("/del_need_auth", userHandler.Delete)
+	}
+
+	// myplaud - 心智幕僚邮箱相关接口
+	myplaud := publicRouter.Group("/myplaud")
+	{
+		myplaud.POST("/mailbox", mailboxHandler.CreateMailbox)
+		myplaud.GET("/mailbox", mailboxHandler.GetMailbox)
 	}
 
 	// private
