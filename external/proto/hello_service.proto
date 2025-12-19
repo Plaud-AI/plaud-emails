@@ -1,0 +1,17 @@
+syntax = "proto3";
+
+package nodeservice;
+
+option go_package = "plaud-emails/external/helloservice";
+
+service HelloService {
+  rpc SayHello(SayHelloRequest) returns (SayHelloResponse);
+}
+
+message SayHelloRequest {
+  string msg = 1;
+}
+
+message SayHelloResponse{
+  string msg = 1;
+}

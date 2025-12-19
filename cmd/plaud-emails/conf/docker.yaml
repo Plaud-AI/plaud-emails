@@ -1,0 +1,55 @@
+app_name: plaud-hello
+env: dev
+jwt_redis:
+  addr: redis:6379
+  password: ""
+  db: 0
+  pool_size: 100
+redis:
+  addr: redis:6379
+  password: ""
+  db: 0
+  pool_size: 100
+db:
+  type: mysql
+  dsn: root:@tcp(mysql-db:3306)/test?charset=utf8mb4&parseTime=true&loc=UTC
+snowflake:
+  use_etcd: true
+  etcd_node_id_range: [100, 110]
+  node_id: 1
+etcd:
+  enable: true
+  endpoints:
+    - etcd:2379
+  username: ""
+  password: ""
+  ttl: 30
+  service_prefix: plaud-hello
+log:
+  env: dev
+  file_name: logs/app.log
+  rotate_by: daily
+  # 1G
+  max_size: 1073741824
+  max_backups: 10
+  no_caller: false
+  level: debug
+  # format: console | json
+  format: json
+  # time_encoding: iso8601 | rfc3339 | rfc3339nano | millis | nanos | epoch | layout
+  time_encoding: iso8601
+  # time_format is used only when time_encoding is 'layout'
+  time_format: "2006-01-02 15:04:05.000"
+  # truncate log message body if too long (bytes). 0 disables truncation
+  max_message_length: 2048
+auth:
+  jwt:
+    secret: "replace-me"
+    expire_seconds: 3600
+    test_list:
+      - "127.0.0.1"
+  api_key:
+    - name: "plaud-api-dev"
+      key: "replace-me"
+  whitelist:
+    - "127.0.0.1"
