@@ -94,3 +94,28 @@ func (h *MailboxHandler) GetMailbox(c *gin.Context) {
 	mailbox := dto.NewMailboxFromModel(user)
 	c.JSON(http.StatusOK, common.NewSuccessResp("mailbox", mailbox))
 }
+
+// GetUserByEmail 根据专属邮箱查询 user_id
+// GET /myplaud/user?email=xxx@myplaud
+func (h *MailboxHandler) GetUserByEmail(c *gin.Context) {
+	email := c.Query("email")
+	if email == "" {
+		c.JSON(http.StatusBadRequest, common.NewFailResp("email is required", -1))
+		return
+	}
+
+	user, err := h.svc.GetUserByDedicatedEmail(c.Request.Context(), email)
+	if err != nil {
+		logger.ErrorfCtx(c.Request.Context(), "get user by email error: %v", err)
+		c.JSON(http.StatusInternalServerError, common.NewFailResp("get user failed", -1))
+		return
+	}
+
+	// 未找到返回失败
+	if user == nil {
+		common.JSONFailResponse(c, "not found", -1)
+		return
+	}
+
+	common.JSONSuccessResponse(c, "user_id", user.UserID)
+}

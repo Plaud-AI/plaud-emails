@@ -72,6 +72,7 @@ func InitRouter(services Services) (public http.Handler, private http.Handler) {
 	{
 		myplaud.POST("/mailbox", mailboxHandler.CreateMailbox)
 		myplaud.GET("/mailbox", mailboxHandler.GetMailbox)
+		myplaud.GET("/user", mailboxHandler.GetUserByEmail)
 	}
 
 	// private

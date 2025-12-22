@@ -148,6 +148,16 @@ func (s *MindAdvisorService) GetMailbox(ctx context.Context, userID string) (*da
 	return user, nil
 }
 
+// GetUserByDedicatedEmail 根据专属邮箱查询用户
+func (s *MindAdvisorService) GetUserByDedicatedEmail(ctx context.Context, email string) (*datamodel.MindAdvisorUser, error) {
+	user, err := s.userDao.GetByDedicatedEmail(ctx, email)
+	if err != nil {
+		logger.ErrorfCtx(ctx, "get user by dedicated email error: %v", err)
+		return nil, err
+	}
+	return user, nil
+}
+
 // validateLocalPart 校验 local_part
 func (s *MindAdvisorService) validateLocalPart(localPart string) error {
 	// 长度校验
