@@ -10,7 +10,7 @@ DOCKER_IMAGE ?= plaud-emails:latest
 DOCKER_SVC ?= plaud-emails
 LOCAL_FLAGS ?= -config_mode=local -app_config_name=dev.yaml -env=dev -public_ip=127.0.0.1 -public_port=8080
 LOCAL_FLAGS_RPC ?= -config_mode=local -app_config_name=dev.yaml -env=dev -public_port=0 -service_addr=127.0.0.1 -grpc_ip=127.0.0.1 -grpc_port=8081
-LOCAL_DEBUG_FLAGS ?= -config_mode=local -app_config_name=dev.template.yaml -env=dev -public_ip=127.0.0.1 -public_port=8088
+LOCAL_DEBUG_FLAGS ?= -config_mode=local -app_config_name=dev.template.yaml -env=dev -public_ip=127.0.0.1 -public_port=7080
 
 # 构建项目
 build:
