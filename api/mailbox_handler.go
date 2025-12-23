@@ -7,7 +7,6 @@ import (
 	"plaud-emails/data/dto"
 	"plaud-emails/service/mindadvisor"
 
-	"github.com/Plaud-AI/plaud-go-scaffold/pkg/common"
 	"github.com/Plaud-AI/plaud-go-scaffold/pkg/logger"
 
 	"github.com/gin-gonic/gin"
@@ -35,7 +34,7 @@ type CreateMailboxReq struct {
 func (h *MailboxHandler) CreateMailbox(c *gin.Context) {
 	var req CreateMailboxReq
 	if err := c.ShouldBindJSON(&req); err != nil {
-		c.JSON(http.StatusBadRequest, common.NewFailResp("invalid request: "+err.Error(), -1))
+		FailResponse(c, http.StatusBadRequest, "invalid request: "+err.Error())
 		return
 	}
 
@@ -48,25 +47,25 @@ func (h *MailboxHandler) CreateMailbox(c *gin.Context) {
 		// 根据错误类型返回不同的状态码
 		switch {
 		case errors.Is(err, mindadvisor.ErrMailboxConflict):
-			c.JSON(http.StatusConflict, common.NewFailResp("mailbox already created with different local_part", -1))
+			FailResponse(c, http.StatusConflict, "mailbox already created with different local_part")
 			return
 		case errors.Is(err, mindadvisor.ErrEmailAlreadyExists):
-			c.JSON(http.StatusConflict, common.NewFailResp("email address already taken", -1))
+			FailResponse(c, http.StatusConflict, "email address already taken")
 			return
 		case errors.Is(err, mindadvisor.ErrInvalidLocalPartLength),
 			errors.Is(err, mindadvisor.ErrInvalidLocalPartChars),
 			errors.Is(err, mindadvisor.ErrReservedWord),
 			errors.Is(err, mindadvisor.ErrInvalidSalutation):
-			c.JSON(http.StatusBadRequest, common.NewFailResp(err.Error(), -1))
+			FailResponse(c, http.StatusBadRequest, err.Error())
 			return
 		default:
-			c.JSON(http.StatusInternalServerError, common.NewFailResp("create mailbox failed", -1))
+			FailResponse(c, http.StatusInternalServerError, "create mailbox failed")
 			return
 		}
 	}
 
 	mailbox := dto.NewMailboxFromModel(user)
-	c.JSON(http.StatusOK, common.NewSuccessResp("mailbox", mailbox))
+	SuccessResponse(c, mailbox)
 }
 
 // GetMailbox 获取用户的专属邮箱
@@ -74,25 +73,25 @@ func (h *MailboxHandler) CreateMailbox(c *gin.Context) {
 func (h *MailboxHandler) GetMailbox(c *gin.Context) {
 	userID := c.Query("user_id")
 	if userID == "" {
-		c.JSON(http.StatusBadRequest, common.NewFailResp("user_id is required", -1))
+		FailResponse(c, http.StatusBadRequest, "user_id is required")
 		return
 	}
 
 	user, err := h.svc.GetMailbox(c.Request.Context(), userID)
 	if err != nil {
 		logger.ErrorfCtx(c.Request.Context(), "get mailbox error: %v", err)
-		c.JSON(http.StatusInternalServerError, common.NewFailResp("get mailbox failed", -1))
+		FailResponse(c, http.StatusInternalServerError, "get mailbox failed")
 		return
 	}
 
 	// 未创建返回 null
 	if user == nil {
-		c.JSON(http.StatusOK, common.NewSuccessResp("mailbox", nil))
+		SuccessResponse(c, nil)
 		return
 	}
 
 	mailbox := dto.NewMailboxFromModel(user)
-	c.JSON(http.StatusOK, common.NewSuccessResp("mailbox", mailbox))
+	SuccessResponse(c, mailbox)
 }
 
 // GetUserByEmail 根据专属邮箱查询 user_id
@@ -100,22 +99,22 @@ func (h *MailboxHandler) GetMailbox(c *gin.Context) {
 func (h *MailboxHandler) GetUserByEmail(c *gin.Context) {
 	email := c.Query("email")
 	if email == "" {
-		c.JSON(http.StatusBadRequest, common.NewFailResp("email is required", -1))
+		FailResponse(c, http.StatusBadRequest, "email is required")
 		return
 	}
 
 	user, err := h.svc.GetUserByDedicatedEmail(c.Request.Context(), email)
 	if err != nil {
 		logger.ErrorfCtx(c.Request.Context(), "get user by email error: %v", err)
-		c.JSON(http.StatusInternalServerError, common.NewFailResp("get user failed", -1))
+		FailResponse(c, http.StatusInternalServerError, "get user failed")
 		return
 	}
 
 	// 未找到返回失败
 	if user == nil {
-		common.JSONFailResponse(c, "not found", -1)
+		FailResponseWithStatus(c, http.StatusOK, -1, "not found")
 		return
 	}
 
-	common.JSONSuccessResponse(c, "user_id", user.UserID)
+	SuccessResponse(c, map[string]string{"user_id": user.UserID})
 }
