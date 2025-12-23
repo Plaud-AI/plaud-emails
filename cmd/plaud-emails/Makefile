@@ -1,4 +1,4 @@
-.PHONY: build run test clean help local-debug
+.PHONY: build run test clean help local-debug dev-run
 
 # 默认目标
 .DEFAULT_GOAL := help
@@ -11,6 +11,7 @@ DOCKER_SVC ?= plaud-emails
 LOCAL_FLAGS ?= -config_mode=local -app_config_name=dev.yaml -env=dev -public_ip=127.0.0.1 -public_port=8080
 LOCAL_FLAGS_RPC ?= -config_mode=local -app_config_name=dev.yaml -env=dev -public_port=0 -service_addr=127.0.0.1 -grpc_ip=127.0.0.1 -grpc_port=8081
 LOCAL_DEBUG_FLAGS ?= -config_mode=local -app_config_name=dev.template.yaml -env=dev -public_ip=127.0.0.1 -public_port=7080
+DEV_RUN_FLAGS ?= -config_mode=local -app_config_name=dev.template.yaml -env=dev -public_ip=0.0.0.0 -public_port=7080
 
 # 构建项目
 build:
@@ -30,6 +31,11 @@ local-run-rpc: build
 local-debug: build
 	@echo "本地调试运行: $(APP_BIN) $(LOCAL_DEBUG_FLAGS)"
 	cd $(APP_DIR) && go run . $(LOCAL_DEBUG_FLAGS)
+
+# 开发环境运行（监听 0.0.0.0，允许外部访问）
+dev-run: build
+	@echo "开发环境运行: $(APP_BIN) $(DEV_RUN_FLAGS)"
+	cd $(APP_DIR) && go run . $(DEV_RUN_FLAGS)
 
 # Docker 构建镜像
 docker-build:
@@ -109,6 +115,7 @@ help:
 	@echo "  local-run - 本地运行 cmd/plaud-emails http服务 （可通过 LOCAL_FLAGS 覆盖启动参数）"
 	@echo "  local-run-rpc - 本地运行 cmd/plaud-emails grpc服务 （可通过 LOCAL_FLAGS_RPC 覆盖启动参数）"
 	@echo "  local-debug - 本地调试运行（连接 dev 环境数据库，禁用 etcd）"
+	@echo "  dev-run    - 开发环境运行（监听 0.0.0.0，允许外部访问）"
 	@echo "  docker-build - 构建 Docker 镜像（DOCKER_IMAGE 可覆盖）"
 	@echo "  docker-start  - 使用 docker compose 以 Docker 方式运行"
 	@echo "  docker-stop - 停止并清理容器"

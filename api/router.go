@@ -69,6 +69,7 @@ func InitRouter(services Services) (public http.Handler, private http.Handler) {
 
 	// myplaud - 心智幕僚邮箱相关接口
 	myplaud := publicRouter.Group("/v1/myplaud")
+	myplaud.Use(ReqIDMiddleware())
 	{
 		myplaud.POST("/mailbox", mailboxHandler.CreateMailbox)
 		myplaud.GET("/mailbox", mailboxHandler.GetMailbox)
