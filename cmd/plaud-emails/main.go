@@ -8,9 +8,9 @@ import (
 	"syscall"
 
 	"plaud-emails/api"
+	appconfig "plaud-emails/pkg/config"
 
 	appsvc "github.com/Plaud-AI/plaud-go-scaffold/pkg/app"
-	"github.com/Plaud-AI/plaud-go-scaffold/pkg/config"
 	"github.com/Plaud-AI/plaud-go-scaffold/pkg/etcd"
 	"github.com/Plaud-AI/plaud-go-scaffold/pkg/logger"
 	"github.com/Plaud-AI/plaud-go-scaffold/pkg/svc"
@@ -20,7 +20,7 @@ import (
 func main() {
 	opts := appsvc.ParseFlags("plaud-emails")
 
-	appConfigGetter, err := appsvc.InitConfig[*config.AppConfig](opts)
+	appConfigGetter, err := appsvc.InitConfig[*appconfig.AppConfig](opts)
 
 	if err != nil {
 		logger.FatalAndExit("init config fail, err:%v", err)

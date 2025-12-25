@@ -54,3 +54,6 @@ auth:
       key: "replace-me"
   whitelist:
     - "127.0.0.1"
+services:
+  plaud_api:
+    base_url: "https://api-dev.plaud.ai"

@@ -3,7 +3,6 @@ package api
 import (
 	"context"
 	"net/http"
-	"os"
 
 	"plaud-emails/external/helloservice"
 
@@ -53,11 +52,13 @@ func InitRouter(services Services) (public http.Handler, private http.Handler) {
 	betaHandler := NewBetaHandler(services.GetMindAdvisorService())
 
 	// 初始化 PlaudAuthService（用于 beta 路由的鉴权）
-	if plaudAPIURL := os.Getenv("PLAUD_API_URL"); plaudAPIURL != "" {
+	// 优先从配置文件 services.plaud_api.base_url 读取，否则从环境变量 PLAUD_API_URL 兜底
+	conf := appConfigGetter.GetConfig()
+	if plaudAPIURL := conf.GetPlaudAPIBaseURL(); plaudAPIURL != "" {
 		logger.Infof("using PlaudAuthService with base URL: %s", plaudAPIURL)
 		SetAuthService(NewPlaudAuthService(plaudAPIURL))
 	} else {
-		logger.Warnf("PLAUD_API_URL not set, using MockAuthService for beta routes")
+		logger.Warnf("plaud_api base_url not configured (config or PLAUD_API_URL env), beta routes will return 500")
 	}
 
 	// public
