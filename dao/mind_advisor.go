@@ -102,3 +102,54 @@ func (d *MindAdvisorLinkedEmailDao) ListByUserID(ctx context.Context, userID str
 	}
 	return emails, nil
 }
+
+// BetaInviteRegistrationDao 内测邀请登记 DAO
+type BetaInviteRegistrationDao struct {
+	db *gorm.DB
+}
+
+// NewBetaInviteRegistrationDao 创建 BetaInviteRegistrationDao
+func NewBetaInviteRegistrationDao(db *gorm.DB) *BetaInviteRegistrationDao {
+	return &BetaInviteRegistrationDao{db: db}
+}
+
+// GetDB 获取数据库连接
+func (d *BetaInviteRegistrationDao) GetDB() *gorm.DB {
+	return d.db
+}
+
+// Create 创建内测邀请登记
+func (d *BetaInviteRegistrationDao) Create(ctx context.Context, reg *datamodel.BetaInviteRegistration) error {
+	return d.db.WithContext(ctx).Create(reg).Error
+}
+
+// GetByUserID 根据 user_id 查询
+func (d *BetaInviteRegistrationDao) GetByUserID(ctx context.Context, userID string) (*datamodel.BetaInviteRegistration, error) {
+	var reg datamodel.BetaInviteRegistration
+	err := d.db.WithContext(ctx).Where("user_id = ? AND status = ?", userID, datamodel.BetaRegistrationStatusActive).Take(&reg).Error
+	if err != nil {
+		if errors.Is(err, gorm.ErrRecordNotFound) {
+			return nil, nil
+		}
+		return nil, err
+	}
+	return &reg, nil
+}
+
+// GetByEmail 根据 email 查询
+func (d *BetaInviteRegistrationDao) GetByEmail(ctx context.Context, email string) (*datamodel.BetaInviteRegistration, error) {
+	var reg datamodel.BetaInviteRegistration
+	err := d.db.WithContext(ctx).Where("email = ? AND status = ?", email, datamodel.BetaRegistrationStatusActive).Take(&reg).Error
+	if err != nil {
+		if errors.Is(err, gorm.ErrRecordNotFound) {
+			return nil, nil
+		}
+		return nil, err
+	}
+	return &reg, nil
+}
+
+// ExecTx 执行事务
+func (d *BetaInviteRegistrationDao) ExecTx(ctx context.Context, fn func(tx *gorm.DB) error) error {
+	return d.db.WithContext(ctx).Transaction(fn)
+}

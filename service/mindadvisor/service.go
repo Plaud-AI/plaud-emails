@@ -39,20 +39,32 @@ var (
 	ErrUserAlreadyHasMailbox    = errors.New("user already has mailbox")
 	ErrMailboxConflict          = errors.New("mailbox already created with different local_part")
 	ErrInvalidSalutation        = errors.New("salutation must be Mr or Mrs")
+
+	// Beta registration errors
+	ErrUserAlreadyRegistered = errors.New("user already registered")
+	ErrEmailAlreadyRegistered = errors.New("email already registered")
+	ErrInvalidRole           = errors.New("invalid role")
+	ErrInvalidIndustry       = errors.New("invalid industry")
+	ErrInvalidMeetingsPerWeek = errors.New("invalid meetings_per_week")
+	ErrInvalidLanguage       = errors.New("invalid primary_working_language")
+	ErrInvalidHelpWanted     = errors.New("invalid help_wanted option")
+	ErrEmptyHelpWanted       = errors.New("help_wanted cannot be empty")
 )
 
 // MindAdvisorService 心智幕僚服务
 type MindAdvisorService struct {
 	svc.BaseService
-	userDao *dao.MindAdvisorUserDao
-	db      *gorm.DB
+	userDao         *dao.MindAdvisorUserDao
+	betaRegDao      *dao.BetaInviteRegistrationDao
+	db              *gorm.DB
 }
 
 // New 创建 MindAdvisorService
 func New(db *gorm.DB) *MindAdvisorService {
 	return &MindAdvisorService{
-		userDao: dao.NewMindAdvisorUserDao(db),
-		db:      db,
+		userDao:    dao.NewMindAdvisorUserDao(db),
+		betaRegDao: dao.NewBetaInviteRegistrationDao(db),
+		db:         db,
 	}
 }
 
@@ -216,4 +228,154 @@ func (s *MindAdvisorService) Stop(ctx context.Context) error {
 	defer s.SetStopped(true)
 	logger.Infof("stop mind advisor service")
 	return nil
+}
+
+// BetaRegistrationInput 内测登记输入
+type BetaRegistrationInput struct {
+	Role                        string   `json:"role"`
+	RoleOther                   string   `json:"role_other,omitempty"`
+	Industry                    string   `json:"industry"`
+	IndustryOther               string   `json:"industry_other,omitempty"`
+	MeetingsPerWeek             string   `json:"meetings_per_week"`
+	PrimaryWorkingLanguage      string   `json:"primary_working_language"`
+	PrimaryWorkingLanguageOther string   `json:"primary_working_language_other,omitempty"`
+	HelpWanted                  []string `json:"help_wanted"`
+	LinkedinURL                 string   `json:"linkedin_url,omitempty"`
+}
+
+// CreateBetaRegistration 创建内测邀请登记
+func (s *MindAdvisorService) CreateBetaRegistration(ctx context.Context, userID, email string, input *BetaRegistrationInput) (*datamodel.BetaInviteRegistration, error) {
+	// 输入校验
+	if err := s.validateBetaRegistrationInput(input); err != nil {
+		return nil, err
+	}
+
+	var result *datamodel.BetaInviteRegistration
+
+	// 事务处理
+	err := s.betaRegDao.ExecTx(ctx, func(tx *gorm.DB) error {
+		txDao := dao.NewBetaInviteRegistrationDao(tx)
+
+		// 检查用户是否已登记
+		existingByUser, err := txDao.GetByUserID(ctx, userID)
+		if err != nil {
+			return err
+		}
+		if existingByUser != nil {
+			return ErrUserAlreadyRegistered
+		}
+
+		// 检查邮箱是否已登记
+		existingByEmail, err := txDao.GetByEmail(ctx, email)
+		if err != nil {
+			return err
+		}
+		if existingByEmail != nil {
+			return ErrEmailAlreadyRegistered
+		}
+
+		// 创建新记录
+		reg := &datamodel.BetaInviteRegistration{
+			UserID:                 userID,
+			Email:                  email,
+			Role:                   input.Role,
+			Industry:               input.Industry,
+			MeetingsPerWeek:        input.MeetingsPerWeek,
+			PrimaryWorkingLanguage: input.PrimaryWorkingLanguage,
+			HelpWanted:             input.HelpWanted,
+			Status:                 datamodel.BetaRegistrationStatusActive,
+		}
+
+		// 设置可选字段
+		if input.Role == datamodel.RoleOther && input.RoleOther != "" {
+			reg.RoleOther = &input.RoleOther
+		}
+		if input.Industry == datamodel.IndustryOther && input.IndustryOther != "" {
+			reg.IndustryOther = &input.IndustryOther
+		}
+		if input.PrimaryWorkingLanguage == datamodel.LanguageOther && input.PrimaryWorkingLanguageOther != "" {
+			reg.PrimaryWorkingLanguageOther = &input.PrimaryWorkingLanguageOther
+		}
+		if input.LinkedinURL != "" {
+			reg.LinkedinURL = &input.LinkedinURL
+		}
+
+		if err := txDao.Create(ctx, reg); err != nil {
+			// 检查是否是唯一约束冲突
+			if strings.Contains(err.Error(), "Duplicate entry") {
+				if strings.Contains(err.Error(), "uk_user_id") {
+					return ErrUserAlreadyRegistered
+				}
+				if strings.Contains(err.Error(), "uk_email") {
+					return ErrEmailAlreadyRegistered
+				}
+			}
+			return err
+		}
+
+		result = reg
+		return nil
+	})
+
+	if err != nil {
+		logger.ErrorfCtx(ctx, "create beta registration error: %v", err)
+		return nil, err
+	}
+
+	return result, nil
+}
+
+// GetBetaRegistration 获取用户的内测登记信息
+func (s *MindAdvisorService) GetBetaRegistration(ctx context.Context, userID string) (*datamodel.BetaInviteRegistration, error) {
+	reg, err := s.betaRegDao.GetByUserID(ctx, userID)
+	if err != nil {
+		logger.ErrorfCtx(ctx, "get beta registration error: %v", err)
+		return nil, err
+	}
+	return reg, nil
+}
+
+// validateBetaRegistrationInput 校验内测登记输入
+func (s *MindAdvisorService) validateBetaRegistrationInput(input *BetaRegistrationInput) error {
+	// 校验 role
+	if !contains(datamodel.ValidRoles, input.Role) {
+		return ErrInvalidRole
+	}
+
+	// 校验 industry
+	if !contains(datamodel.ValidIndustries, input.Industry) {
+		return ErrInvalidIndustry
+	}
+
+	// 校验 meetings_per_week
+	if !contains(datamodel.ValidMeetingsPerWeek, input.MeetingsPerWeek) {
+		return ErrInvalidMeetingsPerWeek
+	}
+
+	// 校验 primary_working_language
+	if !contains(datamodel.ValidLanguages, input.PrimaryWorkingLanguage) {
+		return ErrInvalidLanguage
+	}
+
+	// 校验 help_wanted
+	if len(input.HelpWanted) == 0 {
+		return ErrEmptyHelpWanted
+	}
+	for _, h := range input.HelpWanted {
+		if !contains(datamodel.ValidHelpWanted, h) {
+			return ErrInvalidHelpWanted
+		}
+	}
+
+	return nil
+}
+
+// contains 检查切片是否包含指定元素
+func contains(slice []string, item string) bool {
+	for _, s := range slice {
+		if s == item {
+			return true
+		}
+	}
+	return false
 }
