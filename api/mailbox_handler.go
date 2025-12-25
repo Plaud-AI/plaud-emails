@@ -84,9 +84,9 @@ func (h *MailboxHandler) GetMailbox(c *gin.Context) {
 		return
 	}
 
-	// 未创建返回 null
+	// 未找到返回失败
 	if user == nil {
-		SuccessResponse(c, nil)
+		FailResponseWithStatus(c, http.StatusOK, -1, "not found")
 		return
 	}
 
