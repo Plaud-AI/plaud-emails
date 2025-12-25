@@ -3,6 +3,7 @@ package api
 import (
 	"context"
 	"net/http"
+	"os"
 
 	"plaud-emails/external/helloservice"
 
@@ -51,6 +52,14 @@ func InitRouter(services Services) (public http.Handler, private http.Handler) {
 	mailboxHandler := NewMailboxHandler(services.GetMindAdvisorService())
 	betaHandler := NewBetaHandler(services.GetMindAdvisorService())
 
+	// 初始化 PlaudAuthService（用于 beta 路由的鉴权）
+	if plaudAPIURL := os.Getenv("PLAUD_API_URL"); plaudAPIURL != "" {
+		logger.Infof("using PlaudAuthService with base URL: %s", plaudAPIURL)
+		SetAuthService(NewPlaudAuthService(plaudAPIURL))
+	} else {
+		logger.Warnf("PLAUD_API_URL not set, using MockAuthService for beta routes")
+	}
+
 	// public
 	publicRouter.GET("/index", demoHandler.Index)
 	publicRouter.GET("/health", demoHandler.Health)
@@ -79,7 +88,7 @@ func InitRouter(services Services) (public http.Handler, private http.Handler) {
 
 	// myplaud beta - 内测邀请登记
 	beta := publicRouter.Group("/v1/myplaud/beta")
-	beta.Use(ReqIDMiddleware(), MockAuthMiddleware())
+	beta.Use(ReqIDMiddleware(), BetaAuthMiddleware())
 	{
 		beta.POST("/registration", betaHandler.CreateBetaRegistration)
 		beta.GET("/registration", betaHandler.GetBetaRegistration)
