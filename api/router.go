@@ -3,7 +3,6 @@ package api
 import (
 	"context"
 	"net/http"
-	"os"
 
 	"plaud-emails/external/helloservice"
 
@@ -53,11 +52,13 @@ func InitRouter(services Services) (public http.Handler, private http.Handler) {
 	betaHandler := NewBetaHandler(services.GetMindAdvisorService())
 
 	// 初始化 PlaudAuthService（用于 beta 路由的鉴权）
-	if plaudAPIURL := os.Getenv("PLAUD_API_URL"); plaudAPIURL != "" {
+	// 优先从配置文件 services.plaud_api.base_url 读取，否则从环境变量 PLAUD_API_URL 兜底
+	conf := appConfigGetter.GetConfig()
+	if plaudAPIURL := conf.GetPlaudAPIBaseURL(); plaudAPIURL != "" {
 		logger.Infof("using PlaudAuthService with base URL: %s", plaudAPIURL)
 		SetAuthService(NewPlaudAuthService(plaudAPIURL))
 	} else {
-		logger.Warnf("PLAUD_API_URL not set, using MockAuthService for beta routes")
+		logger.Warnf("plaud_api base_url not configured (config or PLAUD_API_URL env), beta routes will return 500")
 	}
 
 	// public
@@ -77,13 +78,19 @@ func InitRouter(services Services) (public http.Handler, private http.Handler) {
 		users.DELETE("/del_need_auth", userHandler.Delete)
 	}
 
-	// myplaud - 心智幕僚邮箱相关接口
-	myplaud := publicRouter.Group("/v1/myplaud")
-	myplaud.Use(ReqIDMiddleware())
+	// myplaud - 心智幕僚邮箱读操作
+	myplaudRead := publicRouter.Group("/v1/myplaud")
+	myplaudRead.Use(ReqIDMiddleware())
 	{
-		myplaud.POST("/mailbox", mailboxHandler.CreateMailbox)
-		myplaud.GET("/mailbox", mailboxHandler.GetMailbox)
-		myplaud.GET("/user", mailboxHandler.GetUserByEmail)
+		myplaudRead.GET("/mailbox", mailboxHandler.GetMailbox)
+		myplaudRead.GET("/user", mailboxHandler.GetUserByEmail)
+	}
+
+	// myplaud - 心智幕僚邮箱写操作（对外暴露，需鉴权）
+	myplaudWrite := publicRouter.Group("/v1/myplaud")
+	myplaudWrite.Use(ReqIDMiddleware(), BetaAuthMiddleware())
+	{
+		myplaudWrite.POST("/mailbox/create", mailboxHandler.CreateMailbox)
 	}
 
 	// myplaud beta - 内测邀请登记
