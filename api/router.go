@@ -78,13 +78,19 @@ func InitRouter(services Services) (public http.Handler, private http.Handler) {
 		users.DELETE("/del_need_auth", userHandler.Delete)
 	}
 
-	// myplaud - 心智幕僚邮箱相关接口
-	myplaud := publicRouter.Group("/v1/myplaud")
-	myplaud.Use(ReqIDMiddleware())
+	// myplaud - 心智幕僚邮箱读操作
+	myplaudRead := publicRouter.Group("/v1/myplaud")
+	myplaudRead.Use(ReqIDMiddleware())
 	{
-		myplaud.POST("/mailbox", mailboxHandler.CreateMailbox)
-		myplaud.GET("/mailbox", mailboxHandler.GetMailbox)
-		myplaud.GET("/user", mailboxHandler.GetUserByEmail)
+		myplaudRead.GET("/mailbox", mailboxHandler.GetMailbox)
+		myplaudRead.GET("/user", mailboxHandler.GetUserByEmail)
+	}
+
+	// myplaud - 心智幕僚邮箱写操作（对外暴露，需鉴权）
+	myplaudWrite := publicRouter.Group("/v1/myplaud")
+	myplaudWrite.Use(ReqIDMiddleware(), BetaAuthMiddleware())
+	{
+		myplaudWrite.POST("/mailbox/create", mailboxHandler.CreateMailbox)
 	}
 
 	// myplaud beta - 内测邀请登记

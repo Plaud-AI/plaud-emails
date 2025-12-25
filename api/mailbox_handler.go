@@ -24,13 +24,12 @@ func NewMailboxHandler(svc *mindadvisor.MindAdvisorService) *MailboxHandler {
 
 // CreateMailboxReq 创建邮箱请求
 type CreateMailboxReq struct {
-	UserID     string `json:"user_id" binding:"required"`
 	LocalPart  string `json:"local_part" binding:"required"`
 	Salutation string `json:"salutation" binding:"required"`
 }
 
 // CreateMailbox 创建专属邮箱
-// POST /myplaud/mailbox
+// POST /myplaud/mailbox/create
 func (h *MailboxHandler) CreateMailbox(c *gin.Context) {
 	var req CreateMailboxReq
 	if err := c.ShouldBindJSON(&req); err != nil {
@@ -38,7 +37,12 @@ func (h *MailboxHandler) CreateMailbox(c *gin.Context) {
 		return
 	}
 
-	userID := req.UserID
+	// 从鉴权中间件获取 user_id
+	userID := GetUserID(c)
+	if userID == "" {
+		FailResponse(c, http.StatusUnauthorized, "unauthorized: missing user_id")
+		return
+	}
 
 	user, err := h.svc.CreateMailbox(c.Request.Context(), userID, req.LocalPart, req.Salutation)
 	if err != nil {
