@@ -49,6 +49,7 @@ func InitRouter(services Services) (public http.Handler, private http.Handler) {
 	demoHandler := NewDemoHandler(services.GetRedisClient())
 	userHandler := NewUserHandler(services.GetUserService(), helloClient)
 	mailboxHandler := NewMailboxHandler(services.GetMindAdvisorService())
+	betaHandler := NewBetaHandler(services.GetMindAdvisorService())
 
 	// public
 	publicRouter.GET("/index", demoHandler.Index)
@@ -74,6 +75,14 @@ func InitRouter(services Services) (public http.Handler, private http.Handler) {
 		myplaud.POST("/mailbox", mailboxHandler.CreateMailbox)
 		myplaud.GET("/mailbox", mailboxHandler.GetMailbox)
 		myplaud.GET("/user", mailboxHandler.GetUserByEmail)
+	}
+
+	// myplaud beta - 内测邀请登记
+	beta := publicRouter.Group("/v1/myplaud/beta")
+	beta.Use(ReqIDMiddleware(), MockAuthMiddleware())
+	{
+		beta.POST("/registration", betaHandler.CreateBetaRegistration)
+		beta.GET("/registration", betaHandler.GetBetaRegistration)
 	}
 
 	// private
