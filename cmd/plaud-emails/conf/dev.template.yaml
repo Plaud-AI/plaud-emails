@@ -56,4 +56,5 @@ auth:
     - "127.0.0.1"
 services:
   plaud_api:
-    base_url: "https://api-dev.plaud.ai"
+    # base_url: "https://api-dev.plaud.ai"
+    base_url: "https://api.plaud.ai" # 使用生产环境验证token
