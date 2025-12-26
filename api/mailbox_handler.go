@@ -122,3 +122,28 @@ func (h *MailboxHandler) GetUserByEmail(c *gin.Context) {
 
 	SuccessResponse(c, map[string]string{"user_id": user.UserID})
 }
+
+// LinkedEmailStatusResp 绑定邮箱状态响应
+type LinkedEmailStatusResp struct {
+	Linked bool `json:"linked"`
+}
+
+// GetLinkedEmailStatus 检查用户是否已绑定邮箱
+// GET /v1/myplaud/linked-email/status
+func (h *MailboxHandler) GetLinkedEmailStatus(c *gin.Context) {
+	// 从中间件获取用户信息
+	userID := GetUserID(c)
+	if userID == "" {
+		FailResponse(c, http.StatusUnauthorized, "unauthorized: missing user_id")
+		return
+	}
+
+	linked, err := h.svc.HasLinkedEmail(c.Request.Context(), userID)
+	if err != nil {
+		logger.ErrorfCtx(c.Request.Context(), "check linked email status error: %v", err)
+		FailResponse(c, http.StatusInternalServerError, "check linked email status failed")
+		return
+	}
+
+	SuccessResponse(c, &LinkedEmailStatusResp{Linked: linked})
+}

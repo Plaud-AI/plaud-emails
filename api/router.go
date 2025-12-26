@@ -91,9 +91,10 @@ func InitRouter(services Services) (public http.Handler, private http.Handler) {
 	myplaudWrite.Use(ReqIDMiddleware(), BetaAuthMiddleware())
 	{
 		myplaudWrite.POST("/mailbox/create", mailboxHandler.CreateMailbox)
+		myplaudWrite.GET("/linked-email/status", mailboxHandler.GetLinkedEmailStatus)
 	}
 
-	// myplaud beta - 内测邀请登记
+	// myplaud beta - 内测邀请登记（对外暴露，需鉴权）
 	beta := publicRouter.Group("/v1/myplaud/beta")
 	beta.Use(ReqIDMiddleware(), BetaAuthMiddleware())
 	{

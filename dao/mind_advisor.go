@@ -103,6 +103,18 @@ func (d *MindAdvisorLinkedEmailDao) ListByUserID(ctx context.Context, userID str
 	return emails, nil
 }
 
+// ExistsByUserID 检查用户是否已绑定邮箱
+func (d *MindAdvisorLinkedEmailDao) ExistsByUserID(ctx context.Context, userID string) (bool, error) {
+	var count int64
+	err := d.db.WithContext(ctx).Model(&datamodel.MindAdvisorLinkedEmail{}).
+		Where("user_id = ? AND status = ?", userID, datamodel.MindAdvisorStatusActive).
+		Count(&count).Error
+	if err != nil {
+		return false, err
+	}
+	return count > 0, nil
+}
+
 // BetaInviteRegistrationDao 内测邀请登记 DAO
 type BetaInviteRegistrationDao struct {
 	db *gorm.DB
