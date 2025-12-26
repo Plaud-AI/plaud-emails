@@ -4,6 +4,7 @@ import (
 	"errors"
 	"net/http"
 
+	datamodel "plaud-emails/data/model"
 	"plaud-emails/service/mindadvisor"
 
 	"github.com/Plaud-AI/plaud-go-scaffold/pkg/logger"
@@ -21,18 +22,8 @@ func NewBetaHandler(svc *mindadvisor.MindAdvisorService) *BetaHandler {
 	return &BetaHandler{svc: svc}
 }
 
-// CreateBetaRegistrationReq 创建内测登记请求
-type CreateBetaRegistrationReq struct {
-	Role                        string   `json:"role" binding:"required"`
-	RoleOther                   string   `json:"role_other,omitempty"`
-	Industry                    string   `json:"industry" binding:"required"`
-	IndustryOther               string   `json:"industry_other,omitempty"`
-	MeetingsPerWeek             string   `json:"meetings_per_week" binding:"required"`
-	PrimaryWorkingLanguage      string   `json:"primary_working_language" binding:"required"`
-	PrimaryWorkingLanguageOther string   `json:"primary_working_language_other,omitempty"`
-	HelpWanted                  []string `json:"help_wanted" binding:"required"`
-	LinkedinURL                 string   `json:"linkedin_url,omitempty"`
-}
+// CreateBetaRegistrationReq 创建内测登记请求（请求体直接是问卷数组）
+type CreateBetaRegistrationReq []datamodel.QuestionnaireItem
 
 // BetaRegistrationResp 内测登记响应
 type BetaRegistrationResp struct {
@@ -57,15 +48,7 @@ func (h *BetaHandler) CreateBetaRegistration(c *gin.Context) {
 	email := GetUserEmail(c)
 
 	input := &mindadvisor.BetaRegistrationInput{
-		Role:                        req.Role,
-		RoleOther:                   req.RoleOther,
-		Industry:                    req.Industry,
-		IndustryOther:               req.IndustryOther,
-		MeetingsPerWeek:             req.MeetingsPerWeek,
-		PrimaryWorkingLanguage:      req.PrimaryWorkingLanguage,
-		PrimaryWorkingLanguageOther: req.PrimaryWorkingLanguageOther,
-		HelpWanted:                  req.HelpWanted,
-		LinkedinURL:                 req.LinkedinURL,
+		Questionnaire: req,
 	}
 
 	reg, err := h.svc.CreateBetaRegistration(c.Request.Context(), userID, email, input)
@@ -80,12 +63,7 @@ func (h *BetaHandler) CreateBetaRegistration(c *gin.Context) {
 		case errors.Is(err, mindadvisor.ErrEmailAlreadyRegistered):
 			FailResponse(c, http.StatusConflict, "email already registered")
 			return
-		case errors.Is(err, mindadvisor.ErrInvalidRole),
-			errors.Is(err, mindadvisor.ErrInvalidIndustry),
-			errors.Is(err, mindadvisor.ErrInvalidMeetingsPerWeek),
-			errors.Is(err, mindadvisor.ErrInvalidLanguage),
-			errors.Is(err, mindadvisor.ErrInvalidHelpWanted),
-			errors.Is(err, mindadvisor.ErrEmptyHelpWanted):
+		case errors.Is(err, mindadvisor.ErrEmptyQuestionnaire):
 			FailResponse(c, http.StatusBadRequest, err.Error())
 			return
 		default:

@@ -41,14 +41,9 @@ var (
 	ErrInvalidSalutation        = errors.New("salutation must be Mr or Mrs")
 
 	// Beta registration errors
-	ErrUserAlreadyRegistered = errors.New("user already registered")
+	ErrUserAlreadyRegistered  = errors.New("user already registered")
 	ErrEmailAlreadyRegistered = errors.New("email already registered")
-	ErrInvalidRole           = errors.New("invalid role")
-	ErrInvalidIndustry       = errors.New("invalid industry")
-	ErrInvalidMeetingsPerWeek = errors.New("invalid meetings_per_week")
-	ErrInvalidLanguage       = errors.New("invalid primary_working_language")
-	ErrInvalidHelpWanted     = errors.New("invalid help_wanted option")
-	ErrEmptyHelpWanted       = errors.New("help_wanted cannot be empty")
+	ErrEmptyQuestionnaire     = errors.New("questionnaire cannot be empty")
 )
 
 // MindAdvisorService 心智幕僚服务
@@ -234,15 +229,7 @@ func (s *MindAdvisorService) Stop(ctx context.Context) error {
 
 // BetaRegistrationInput 内测登记输入
 type BetaRegistrationInput struct {
-	Role                        string   `json:"role"`
-	RoleOther                   string   `json:"role_other,omitempty"`
-	Industry                    string   `json:"industry"`
-	IndustryOther               string   `json:"industry_other,omitempty"`
-	MeetingsPerWeek             string   `json:"meetings_per_week"`
-	PrimaryWorkingLanguage      string   `json:"primary_working_language"`
-	PrimaryWorkingLanguageOther string   `json:"primary_working_language_other,omitempty"`
-	HelpWanted                  []string `json:"help_wanted"`
-	LinkedinURL                 string   `json:"linkedin_url,omitempty"`
+	Questionnaire []datamodel.QuestionnaireItem `json:"questionnaire"`
 }
 
 // CreateBetaRegistration 创建内测邀请登记
@@ -278,28 +265,10 @@ func (s *MindAdvisorService) CreateBetaRegistration(ctx context.Context, userID,
 
 		// 创建新记录
 		reg := &datamodel.BetaInviteRegistration{
-			UserID:                 userID,
-			Email:                  email,
-			Role:                   input.Role,
-			Industry:               input.Industry,
-			MeetingsPerWeek:        input.MeetingsPerWeek,
-			PrimaryWorkingLanguage: input.PrimaryWorkingLanguage,
-			HelpWanted:             input.HelpWanted,
-			Status:                 datamodel.BetaRegistrationStatusActive,
-		}
-
-		// 设置可选字段
-		if input.Role == datamodel.RoleOther && input.RoleOther != "" {
-			reg.RoleOther = &input.RoleOther
-		}
-		if input.Industry == datamodel.IndustryOther && input.IndustryOther != "" {
-			reg.IndustryOther = &input.IndustryOther
-		}
-		if input.PrimaryWorkingLanguage == datamodel.LanguageOther && input.PrimaryWorkingLanguageOther != "" {
-			reg.PrimaryWorkingLanguageOther = &input.PrimaryWorkingLanguageOther
-		}
-		if input.LinkedinURL != "" {
-			reg.LinkedinURL = &input.LinkedinURL
+			UserID:        userID,
+			Email:         email,
+			Questionnaire: input.Questionnaire,
+			Status:        datamodel.BetaRegistrationStatusActive,
 		}
 
 		if err := txDao.Create(ctx, reg); err != nil {
@@ -359,45 +328,9 @@ func (s *MindAdvisorService) HasLinkedEmail(ctx context.Context, userID string) 
 
 // validateBetaRegistrationInput 校验内测登记输入
 func (s *MindAdvisorService) validateBetaRegistrationInput(input *BetaRegistrationInput) error {
-	// 校验 role
-	if !contains(datamodel.ValidRoles, input.Role) {
-		return ErrInvalidRole
+	// 校验 questionnaire 不为空
+	if len(input.Questionnaire) == 0 {
+		return ErrEmptyQuestionnaire
 	}
-
-	// 校验 industry
-	if !contains(datamodel.ValidIndustries, input.Industry) {
-		return ErrInvalidIndustry
-	}
-
-	// 校验 meetings_per_week
-	if !contains(datamodel.ValidMeetingsPerWeek, input.MeetingsPerWeek) {
-		return ErrInvalidMeetingsPerWeek
-	}
-
-	// 校验 primary_working_language
-	if !contains(datamodel.ValidLanguages, input.PrimaryWorkingLanguage) {
-		return ErrInvalidLanguage
-	}
-
-	// 校验 help_wanted
-	if len(input.HelpWanted) == 0 {
-		return ErrEmptyHelpWanted
-	}
-	for _, h := range input.HelpWanted {
-		if !contains(datamodel.ValidHelpWanted, h) {
-			return ErrInvalidHelpWanted
-		}
-	}
-
 	return nil
-}
-
-// contains 检查切片是否包含指定元素
-func contains(slice []string, item string) bool {
-	for _, s := range slice {
-		if s == item {
-			return true
-		}
-	}
-	return false
 }
