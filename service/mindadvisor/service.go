@@ -335,6 +335,16 @@ func (s *MindAdvisorService) GetBetaRegistration(ctx context.Context, userID str
 	return reg, nil
 }
 
+// IsBetaRegistered 检查用户是否已登记内测
+func (s *MindAdvisorService) IsBetaRegistered(ctx context.Context, userID string) (bool, error) {
+	exists, err := s.betaRegDao.ExistsByUserID(ctx, userID)
+	if err != nil {
+		logger.ErrorfCtx(ctx, "check beta registration error: %v", err)
+		return false, err
+	}
+	return exists, nil
+}
+
 // validateBetaRegistrationInput 校验内测登记输入
 func (s *MindAdvisorService) validateBetaRegistrationInput(input *BetaRegistrationInput) error {
 	// 校验 role

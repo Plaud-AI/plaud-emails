@@ -99,6 +99,7 @@ func InitRouter(services Services) (public http.Handler, private http.Handler) {
 	{
 		beta.POST("/registration", betaHandler.CreateBetaRegistration)
 		beta.GET("/registration", betaHandler.GetBetaRegistration)
+		beta.GET("/registration/status", betaHandler.GetBetaRegistrationStatus)
 	}
 
 	// private

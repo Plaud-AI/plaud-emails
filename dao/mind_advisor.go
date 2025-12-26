@@ -149,6 +149,18 @@ func (d *BetaInviteRegistrationDao) GetByEmail(ctx context.Context, email string
 	return &reg, nil
 }
 
+// ExistsByUserID 检查用户是否已登记
+func (d *BetaInviteRegistrationDao) ExistsByUserID(ctx context.Context, userID string) (bool, error) {
+	var count int64
+	err := d.db.WithContext(ctx).Model(&datamodel.BetaInviteRegistration{}).
+		Where("user_id = ? AND status = ?", userID, datamodel.BetaRegistrationStatusActive).
+		Count(&count).Error
+	if err != nil {
+		return false, err
+	}
+	return count > 0, nil
+}
+
 // ExecTx 执行事务
 func (d *BetaInviteRegistrationDao) ExecTx(ctx context.Context, fn func(tx *gorm.DB) error) error {
 	return d.db.WithContext(ctx).Transaction(fn)
