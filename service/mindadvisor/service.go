@@ -54,17 +54,19 @@ var (
 // MindAdvisorService 心智幕僚服务
 type MindAdvisorService struct {
 	svc.BaseService
-	userDao         *dao.MindAdvisorUserDao
-	betaRegDao      *dao.BetaInviteRegistrationDao
-	db              *gorm.DB
+	userDao        *dao.MindAdvisorUserDao
+	linkedEmailDao *dao.MindAdvisorLinkedEmailDao
+	betaRegDao     *dao.BetaInviteRegistrationDao
+	db             *gorm.DB
 }
 
 // New 创建 MindAdvisorService
 func New(db *gorm.DB) *MindAdvisorService {
 	return &MindAdvisorService{
-		userDao:    dao.NewMindAdvisorUserDao(db),
-		betaRegDao: dao.NewBetaInviteRegistrationDao(db),
-		db:         db,
+		userDao:        dao.NewMindAdvisorUserDao(db),
+		linkedEmailDao: dao.NewMindAdvisorLinkedEmailDao(db),
+		betaRegDao:     dao.NewBetaInviteRegistrationDao(db),
+		db:             db,
 	}
 }
 
@@ -333,6 +335,26 @@ func (s *MindAdvisorService) GetBetaRegistration(ctx context.Context, userID str
 		return nil, err
 	}
 	return reg, nil
+}
+
+// IsBetaRegistered 检查用户是否已登记内测
+func (s *MindAdvisorService) IsBetaRegistered(ctx context.Context, userID string) (bool, error) {
+	exists, err := s.betaRegDao.ExistsByUserID(ctx, userID)
+	if err != nil {
+		logger.ErrorfCtx(ctx, "check beta registration error: %v", err)
+		return false, err
+	}
+	return exists, nil
+}
+
+// HasLinkedEmail 检查用户是否已绑定邮箱
+func (s *MindAdvisorService) HasLinkedEmail(ctx context.Context, userID string) (bool, error) {
+	exists, err := s.linkedEmailDao.ExistsByUserID(ctx, userID)
+	if err != nil {
+		logger.ErrorfCtx(ctx, "check linked email error: %v", err)
+		return false, err
+	}
+	return exists, nil
 }
 
 // validateBetaRegistrationInput 校验内测登记输入

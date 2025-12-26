@@ -133,3 +133,24 @@ func (h *BetaHandler) GetBetaRegistration(c *gin.Context) {
 
 	SuccessResponse(c, resp)
 }
+
+// BetaRegistrationStatusResp 内测登记状态响应
+type BetaRegistrationStatusResp struct {
+	Registered bool `json:"registered"`
+}
+
+// GetBetaRegistrationStatus 检查用户是否已登记内测
+// GET /v1/myplaud/beta/registration/status
+func (h *BetaHandler) GetBetaRegistrationStatus(c *gin.Context) {
+	// 从中间件获取用户信息
+	userID := GetUserID(c)
+
+	registered, err := h.svc.IsBetaRegistered(c.Request.Context(), userID)
+	if err != nil {
+		logger.ErrorfCtx(c.Request.Context(), "check beta registration status error: %v", err)
+		FailResponse(c, http.StatusInternalServerError, "check registration status failed")
+		return
+	}
+
+	SuccessResponse(c, &BetaRegistrationStatusResp{Registered: registered})
+}
